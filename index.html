@@ -285,6 +285,26 @@ td.acts-cell{text-align:right;white-space:nowrap;padding-right:14px}
 .legend .n{margin-left:auto;white-space:nowrap;padding-left:8px;font-variant-numeric:tabular-nums;color:var(--muted)}
 .ch-tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:6px 9px;border-radius:7px;white-space:nowrap;z-index:5;display:none}
 @media (max-width:560px){.legend{grid-template-columns:1fr;min-width:0;width:100%}.pie-wrap{justify-content:center}.bar-row{grid-template-columns:96px 1fr 76px}}
+.pl-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.pl-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px}
+.pl-card .k{font-size:12px;font-weight:600;color:var(--muted)}
+.pl-card .v{white-space:nowrap;font-size:24px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.pl-card .s{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pl-card.net{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand),var(--shadow)}
+.neg{color:#b42318}.pos{color:#0f6b3a}
+.pl-outcomes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;font-size:12.5px}
+.pl-outcomes span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 11px;color:var(--muted)}
+.pl-outcomes b{color:var(--ink);font-weight:600}
+.pl-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;margin-bottom:16px}
+@media (max-width:900px){.pl-grid{grid-template-columns:minmax(0,1fr)}}
+.pl-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.pl-head h3{margin:0}
+.exp-form{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.3fr auto;gap:8px;margin-bottom:8px}
+@media (max-width:700px){.exp-form{grid-template-columns:1fr 1fr}.exp-form .btn{grid-column:span 2}}
+.calc{font-size:13.5px;font-variant-numeric:tabular-nums}
+.calc div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f2efe8}
+.calc .tot{font-weight:700;border-bottom:0;border-top:2px solid var(--ink);margin-top:2px}
+.calc .sub{font-weight:600}
 .banner{background:#fff7e6;border:1px solid #f5d9a8;color:#7a4a00;padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:13px}
 </style>
 <script src="config.js"></script>
@@ -336,6 +356,7 @@ td.acts-cell{text-align:right;white-space:nowrap;padding-right:14px}
     <div id="content" class="hidden">
       <nav class="views" id="viewNav">
         <button data-view="orders" class="on">Orders <span class="vc" id="vcOrders"></span></button>
+        <button data-view="pnl" class="hidden" id="pnlNav">Profit &amp; Loss</button>
         <button data-view="returns" class="hidden">Customer Returns <span class="vc" id="vcReturns"></span></button>
         <button data-view="exchange" class="hidden">Exchange <span class="vc" id="vcEx"></span><span class="vtask hidden" id="vcTask"></span></button>
       </nav>
@@ -373,6 +394,50 @@ td.acts-cell{text-align:right;white-space:nowrap;padding-right:14px}
         <div class="cards" id="cards"></div>
         <div class="foot"><span id="footCount"></span><span id="footMore"></span></div>
       </div>
+      </div>
+
+      <!-- Profit & Loss (admins) -->
+      <div id="pnlView" class="hidden">
+        <div id="pnlWarn"></div>
+        <div class="pl-cards" id="pnlCards"></div>
+        <div class="pl-outcomes" id="pnlOutcomes"></div>
+        <div class="pl-grid">
+          <div class="ch-card" id="expCard">
+            <div class="pl-head"><h3>Expenses</h3><span class="ch-sub" id="expTotal"></span>
+              <div class="spacer"></div>
+              <label class="btn sm" for="expFile" title="CSV with columns: Category, Amount, Date, Note">Upload CSV</label>
+              <input type="file" id="expFile" accept=".csv,text/csv" class="hidden">
+              <button class="btn sm" id="expTemplate">CSV template</button></div>
+            <form id="expForm" class="exp-form" autocomplete="off">
+              <select class="in" id="expCat"></select>
+              <input class="in" id="expAmt" placeholder="Amount ₹" inputmode="decimal">
+              <input class="in" id="expDate" type="date">
+              <input class="in" id="expNote" placeholder="Note (optional)">
+              <button class="btn primary" type="submit">Add expense</button>
+            </form>
+            <div id="expMsg"></div>
+            <div id="expBars"></div>
+            <div class="tbl-wrap" style="display:block;max-height:320px"><table><thead><tr><th>Date</th><th>Category</th><th class="num">Amount</th><th>Note</th><th>Added by</th><th></th></tr></thead><tbody id="expBody"></tbody></table></div>
+          </div>
+          <div class="ch-card" id="calcCard">
+            <h3>How profit is calculated</h3>
+            <div class="ch-sub">For orders placed this month</div>
+            <div id="pnlCalc"></div>
+          </div>
+        </div>
+        <div class="panel" id="plPanel">
+          <div class="panel-head">
+            <h2>Profit per order</h2>
+            <div class="seg" id="plSeg"><button data-pl="delivered" class="on">Delivered</button><button data-pl="all">All orders</button></div>
+            <div class="spacer"></div>
+            <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input class="in" id="plq" placeholder="Search order # or product…" autocomplete="off"></div>
+            <button class="btn sm" id="plExport">Export CSV</button>
+          </div>
+          <div class="tbl-wrap"><table><thead id="plHead"></thead><tbody id="plBody"></tbody></table></div>
+          <div class="cards" id="plCards"></div>
+          <div class="foot"><span id="plFoot"></span><span id="plMore"></span></div>
+        </div>
       </div>
 
       <!-- Customer returns -->
@@ -558,7 +623,7 @@ function buildOrders(headers, rows){
     id:col(headers,'order id'), name:col(headers,'order name','order #','name'), value:col(headers,'order value','value','total'),
     pay:col(headers,'payment'), ful:col(headers,'fulfil','fulfill'), courier:col(headers,'courier'), awb:col(headers,'awb','tracking no','tracking number'),
     status:col(headers,'live tracking status','tracking status','delivery status','status'), loc:col(headers,'checkpoint','location'),
-    date:col(headers,'order date','created'), synced:col(headers,'synced','updated'), ptype:col(headers,'payment type'),
+    date:col(headers,'order date','created'), synced:col(headers,'synced','updated'), ptype:col(headers,'payment type'), cost:col(headers,'product cost'), items:col(headers,'items'), nocost:col(headers,'items without cost'),
     packed:col(headers,'packed by'), packedAt:col(headers,'packed at')
   };
   const g = (r,i)=> i>=0 ? String(r[i]==null?'':r[i]).trim() : '';
@@ -577,7 +642,9 @@ function buildOrders(headers, rows){
     const [cat, note] = classify(o);
     o.cat = cat; o.note = note;
     o.statusLabel = o.status || (cat==='not_shipped' ? 'Not shipped yet' : cat==='cancelled' ? 'Cancelled / voided' : '—');
-    o.search = [o.name,o.id,o.awb,o.courier,o.status,o.loc,o.payment,o.packedBy].join(' ').toLowerCase();
+    o.cost = I.cost>=0 && r[I.cost]!=='' ? Number(r[I.cost])||0 : null;
+    o.items = I.items>=0 ? String(r[I.items]||'') : ''; o.noCost = I.nocost>=0 ? String(r[I.nocost]||'') : '';
+    o.search = [o.name,o.id,o.awb,o.courier,o.status,o.loc,o.payment,o.packedBy,o.items].join(' ').toLowerCase();
     return o;
   });
 }
@@ -674,6 +741,7 @@ function render(){
   $('#footMore').innerHTML = list.length>vis.length ? `<button class="btn sm" id="moreBtn">Show more</button>` : '';
   renderSync();
   renderReturns();
+  if(S.view==='pnl') renderPnl();
   renderExchange();
 }
 /* ---------- Charts: payment bar + order-status pie ---------- */
@@ -710,11 +778,153 @@ function renderCharts(base, counts){
 }
 document.addEventListener('mousemove', e=>{
   const card = e.target.closest && e.target.closest('.ch-card'); document.querySelectorAll('.ch-tip').forEach(t=>{ if(!card||!card.contains(t)) t.style.display='none'; });
-  if(!card) return; const tip = card.querySelector('.ch-tip'); const src = e.target.closest('[data-tip]');
+  if(!card) return; const tip = card.querySelector('.ch-tip'); if(!tip) return; const src = e.target.closest('[data-tip]');
   if(!src){ tip.style.display='none'; return; }
   const r = card.getBoundingClientRect(); tip.textContent = src.dataset.tip; tip.style.display='block';
   tip.style.left = Math.min(e.clientX-r.left+12, r.width-tip.offsetWidth-6)+'px'; tip.style.top = (e.clientY-r.top+14)+'px';
 });
+/* ---------- Profit & Loss ---------- */
+const PL = { data:null, show:'delivered', q:'', limit:PAGE, rows:[] };
+const inr2 = n=>(n<0?'−':'')+'₹'+Math.abs(Math.round(n||0)).toLocaleString('en-IN');
+const pct = (a,b)=> b ? (a*100/b).toFixed(1)+'%' : '–';
+function pnlCompute(){
+  const d = PL.data; const gst = 0; const ex = v=>v;   // GST is handled elsewhere — order value is used as is
+  const seen = {}, orders = [];
+  S.orders.forEach(o=>{ const k = o.id||o.name; if(!seen[k]){ seen[k]=1; orders.push(o); } });   // one row per order (multi-shipment orders appear once)
+  const bucket = o => o.cat==='delivered' ? 'delivered' : o.cat==='return' ? 'returned' : o.cat==='rto' ? 'rto'
+                   : (o.cat==='cancelled' || /void|refund/.test(String(o.payment).toLowerCase())) ? 'cancelled' : 'pending';
+  const out = {delivered:[0,0],pending:[0,0],rto:[0,0],returned:[0,0],cancelled:[0,0]};
+  orders.forEach(o=>{ o.plBucket = bucket(o); out[o.plBucket][0]++; out[o.plBucket][1]+=o.value; });
+  const del = orders.filter(o=>o.plBucket==='delivered');
+  const revenue = del.reduce((a,o)=>a+ex(o.value),0);
+  const cogs = del.reduce((a,o)=>a+(o.cost||0),0);
+  const exps = d.expenses||[]; const expTotal = exps.reduce((a,e)=>a+e.amount,0);
+  const share = del.length ? expTotal/del.length : 0;
+  orders.forEach(o=>{
+    o.exGst = ex(o.value);
+    if(o.plBucket==='delivered'){ o.gross = o.exGst-(o.cost||0); o.share = share; o.net = o.gross-share; }
+    else { o.gross = o.share = o.net = null; }
+  });
+  const missing = del.filter(o=>o.cost===null || o.noCost).length;
+  return {gst, orders, out, del, revenue, cogs, gross:revenue-cogs, expTotal, net:revenue-cogs-expTotal, share, missing, exps};
+}
+function renderPnl(){
+  if(!PL.data) return;
+  const c = pnlCompute(); PL.c = c;
+  const cat = PL.data.categories;
+  $('#pnlWarn').innerHTML = (c.missing ? `<div class="banner">${c.missing} delivered order(s) have items with no "Cost per item" in Shopify, so their product cost is too low. Add the cost in Shopify → Products → variant → Cost per item; the next sync picks it up.</div>` : '')
+    + (S.orders.length && S.orders.every(o=>o.cost===null) ? `<div class="banner">Product costs haven't been loaded for this month yet — run <b>runMonthlySync</b> once in Apps Script.</div>` : '');
+  // costs are shown as plain amounts; red is kept for an actual loss (negative profit)
+  const card = (k,v,s,cls='',isProfit=false)=>`<div class="pl-card ${cls}"><div class="k">${k}</div><div class="v ${isProfit&&v<0?'neg':''}">${inr2(v)}</div><div class="s">${s}</div></div>`;
+  $('#pnlCards').innerHTML = card('Delivered revenue', c.revenue, `${c.del.length.toLocaleString('en-IN')} orders${c.gst?` · excl. ${c.gst}% GST`:''}`)
+    + card('Product cost', c.cogs, pct(c.cogs,c.revenue)+' of revenue')
+    + card('Gross profit', c.gross, pct(c.gross,c.revenue)+' margin', '', true)
+    + card('Expenses', c.expTotal, `${c.exps.length} entries · ${inr2(c.share)} per delivered order`)
+    + card('Net profit', c.net, pct(c.net,c.revenue)+' net margin', 'net', true);
+  const oc = c.out;
+  $('#pnlOutcomes').innerHTML = `<span>Counted as revenue: <b>Delivered ${oc.delivered[0]}</b> · ${inr2(oc.delivered[1])}</span>
+    <span>Not counted yet: <b>In progress ${oc.pending[0]}</b> · ${inr2(oc.pending[1])}</span>
+    <span><b>RTO ${oc.rto[0]}</b> · ${inr2(oc.rto[1])}</span><span><b>Customer return ${oc.returned[0]}</b> · ${inr2(oc.returned[1])}</span>
+    <span><b>Cancelled ${oc.cancelled[0]}</b> · ${inr2(oc.cancelled[1])}</span>`;
+  // calculation
+  const byCat = {}; c.exps.forEach(e=>byCat[e.category]=(byCat[e.category]||0)+e.amount);
+  $('#pnlCalc').innerHTML = `<div class="calc"><div><span>Delivered order value</span><span>${inr2(c.del.reduce((a,o)=>a+o.value,0))}</span></div>
+    ${c.gst?`<div><span>− GST (${c.gst}%)</span><span>${inr2(-(c.del.reduce((a,o)=>a+o.value,0)-c.revenue))}</span></div>`:''}
+    <div class="sub"><span>Revenue</span><span>${inr2(c.revenue)}</span></div>
+    <div><span>− Product cost</span><span>${inr2(-c.cogs)}</span></div>
+    <div class="sub"><span>Gross profit</span><span>${inr2(c.gross)}</span></div>
+    ${cat.filter(k=>byCat[k]).map(k=>`<div><span>− ${esc(k)}</span><span>${inr2(-byCat[k])}</span></div>`).join('') || '<div><span>− Expenses</span><span>₹0</span></div>'}
+    <div class="tot"><span>Net profit</span><span class="${c.net<0?'neg':'pos'}">${inr2(c.net)}</span></div></div>`;
+  // expenses
+  if(!$('#expCat').options.length){ $('#expCat').innerHTML = '<option value="">Category…</option>'+cat.map(k=>`<option>${esc(k)}</option>`).join(''); }
+  const [y,m] = S.month.split('-'); const last = new Date(+y, +m, 0).getDate();
+  $('#expDate').min = S.month+'-01'; $('#expDate').max = S.month+'-'+String(last).padStart(2,'0');
+  if(!$('#expDate').value || $('#expDate').value.slice(0,7)!==S.month){ const t = new Date(); const ty = t.toISOString().slice(0,7)===S.month; $('#expDate').value = ty ? t.toISOString().slice(0,10) : $('#expDate').max; }
+  $('#expTotal').textContent = `${inr2(c.expTotal)} this month`;
+  const maxC = Math.max(1,...Object.values(byCat));
+  $('#expBars').innerHTML = cat.filter(k=>byCat[k]).map(k=>`<div class="bar-row" data-tip="${esc(k)}: ${inr2(byCat[k])} (${pct(byCat[k],c.expTotal)})"><span>${esc(k)}</span><div class="bar-track"><div class="bar-fill" style="width:${(byCat[k]/maxC*100).toFixed(1)}%"></div></div><span class="v">${inr2(byCat[k])}</span></div>`).join('') + '<div class="ch-tip"></div>';
+  $('#expBody').innerHTML = c.exps.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(e=>`<tr style="cursor:default"><td>${esc(e.date)}</td><td>${esc(e.category)}</td><td class="num">${inr2(e.amount)}</td><td class="loc" title="${esc(e.note)}">${esc(e.note)}</td><td>${esc(e.by)}</td>
+    <td><button class="icon-btn del" data-expdel="${esc(e.id)}" title="Delete" aria-label="Delete expense"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button></td></tr>`).join('')
+    || '<tr><td colspan="6" class="empty" style="padding:20px">No expenses added for this month yet.</td></tr>';
+  renderPlTable();
+}
+function renderPlTable(){
+  const c = PL.c; if(!c) return;
+  let list = PL.show==='delivered' ? c.del : c.orders;
+  if(PL.q){ const q=PL.q.toLowerCase(); list = list.filter(o=>(o.name+' '+o.items).toLowerCase().includes(q)); }
+  list = list.slice().sort((a,b)=>(b.date||0)-(a.date||0));
+  PL.rows = list; const vis = list.slice(0,PL.limit);
+  $('#plHead').innerHTML = '<tr><th>Order</th><th>Date</th><th>Status</th><th>Items</th><th class="num">Value</th>'+(c.gst?'<th class="num">Ex-GST</th>':'')+'<th class="num">Product cost</th><th class="num">Gross profit</th><th class="num">Expense share</th><th class="num">Net profit</th><th class="num">Margin</th></tr>';
+  const dash='<span style="color:var(--muted)">–</span>';
+  $('#plBody').innerHTML = vis.map(o=>`<tr data-plo="${esc(o.name)}"><td><b>${esc(o.name)}</b></td><td>${esc(fmtDate(o.date))}</td><td><span class="pill" style="--c:${CAT[o.cat].color}">${esc(o.statusLabel)}</span></td>
+    <td class="loc" title="${esc(o.items)}" style="max-width:240px">${esc(o.items)}${o.noCost?` <span class="tag" style="background:#fff3e0;color:#9a5b00" title="No cost in Shopify: ${esc(o.noCost)}">cost missing</span>`:''}</td>
+    <td class="num">${inr(o.value)}</td>${c.gst?`<td class="num">${inr(o.exGst)}</td>`:''}<td class="num">${o.cost===null?dash:inr(o.cost)}</td>
+    <td class="num">${o.gross===null?dash:inr2(o.gross)}</td><td class="num">${o.share===null?dash:inr2(-o.share)}</td>
+    <td class="num"><b class="${o.net<0?'neg':''}">${o.net===null?dash:inr2(o.net)}</b></td><td class="num">${o.net===null?dash:pct(o.net,o.exGst)}</td></tr>`).join('')
+    || `<tr><td colspan="11" class="empty">No orders here.</td></tr>`;
+  $('#plCards').innerHTML = vis.map(o=>`<div class="ocard" data-plo="${esc(o.name)}"><div class="r1"><b>${esc(o.name)}</b><span class="pill" style="--c:${CAT[o.cat].color}">${esc(o.statusLabel)}</span></div>
+    <div class="r2"><span>${esc(o.items)}</span></div><div class="r2"><span>${inr(o.value)} · cost ${o.cost===null?'–':inr(o.cost)}</span><span>Net <b class="${o.net<0?'neg':''}">${o.net===null?'–':inr2(o.net)}</b></span></div></div>`).join('');
+  $('#plFoot').textContent = `Showing ${vis.length} of ${list.length} orders` + (PL.show==='delivered' ? ` · net profit ${inr2(list.reduce((a,o)=>a+(o.net||0),0))}` : '');
+  $('#plMore').innerHTML = list.length>vis.length ? '<button class="btn sm" id="plMoreBtn">Show more</button>' : '';
+}
+function parseCsv(text){
+  const rows=[]; let row=[], f='', q=false;
+  for(let i=0;i<text.length;i++){ const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=ch; }
+    else if(ch==='"') q=true; else if(ch===','){ row.push(f); f=''; } else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n') i++; row.push(f); rows.push(row); row=[]; f=''; } else f+=ch; }
+  if(f||row.length){ row.push(f); rows.push(row); }
+  return rows.filter(r=>r.some(x=>String(x).trim()!==''));
+}
+function csvDate(v){ v=String(v||'').trim(); if(!v) return ''; let m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m=v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/); if(m) return `${m[3].length===2?'20'+m[3]:m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return ''; }
+async function saveExpenses(list, okMsg){
+  const r = await api('expAdd',{month:S.month, expenses:list}).catch(e=>({ok:false,error:e.message}));
+  if(!r.ok){ if(r.error!=='SESSION_EXPIRED') $('#expMsg').innerHTML = `<div class="err">${esc(r.error)}</div>`; return false; }
+  PL.data.expenses = r.expenses; $('#expMsg').innerHTML = `<div class="ok">${esc(okMsg)}</div>`; setTimeout(()=>{ if($('#expMsg')) $('#expMsg').innerHTML=''; },3000);
+  renderPnl(); return true;
+}
+$('#expForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const cat=$('#expCat').value, amt=$('#expAmt').value.trim();
+  if(!cat){ $('#expMsg').innerHTML='<div class="err">Choose a category.</div>'; return; }
+  if(!amt || isNaN(Number(amt.replace(/[₹,\s]/g,'')))){ $('#expMsg').innerHTML='<div class="err">Enter the amount.</div>'; return; }
+  const b=e.target.querySelector('button'); b.disabled=true;
+  if(await saveExpenses([{category:cat, amount:amt, date:$('#expDate').value, note:$('#expNote').value.trim()}], `Added ${cat} ${inr2(Number(amt.replace(/[₹,\s]/g,'')))}`)){ $('#expAmt').value=''; $('#expNote').value=''; }
+  b.disabled=false;
+});
+$('#expFile').addEventListener('change', async e=>{
+  const file = e.target.files[0]; e.target.value=''; if(!file) return;
+  const rows = parseCsv(await file.text()); if(!rows.length) return;
+  const h = rows[0].map(x=>String(x).trim().toLowerCase()); const hasHead = h.some(x=>/categ|amount/.test(x));
+  const ix = k=>{ const i=h.findIndex(x=>x.includes(k)); return i; };
+  const ci = hasHead ? ix('categ') : 0, ai = hasHead ? ix('amount') : 1, di = hasHead ? ix('date') : 2, ni = hasHead ? ix('note') : 3;
+  const list = rows.slice(hasHead?1:0).map(r=>({category:r[ci]||'', amount:r[ai]||'', date:csvDate(r[di])||'', note:ni>=0?(r[ni]||''):''}));
+  const total = list.reduce((a,x)=>a+(Number(String(x.amount).replace(/[₹,\s]/g,''))||0),0);
+  if(!confirm(`Add ${list.length} expense(s) totalling ${inr2(total)} to ${(S.months.find(m=>m.ym===S.month)||{}).label||S.month}?`)) return;
+  await saveExpenses(list, `Uploaded ${list.length} expense(s)`);
+});
+$('#expTemplate').addEventListener('click', ()=>{
+  const cats = PL.data ? PL.data.categories : [];
+  const csv = 'Category,Amount,Date,Note\n' + cats.map(c=>`"${c}",0,${S.month}-01,`).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`rawayi-expenses-${S.month}.csv`; a.click();
+});
+
+$('#pnlView').addEventListener('click', async e=>{
+  const t = e.target.closest('button,[data-plo]'); if(!t) return;
+  if(t.dataset.expdel){ if(!confirm('Delete this expense?')) return;
+    const r = await api('expDelete',{month:S.month,id:t.dataset.expdel}).catch(er=>({ok:false,error:er.message}));
+    if(r.ok){ PL.data.expenses=r.expenses; renderPnl(); toast('Expense deleted'); } else if(r.error!=='SESSION_EXPIRED') alert(r.error); return; }
+  if(t.dataset.pl){ PL.show=t.dataset.pl; PL.limit=PAGE; document.querySelectorAll('#plSeg button').forEach(b=>b.classList.toggle('on',b===t)); renderPlTable(); return; }
+  if(t.id==='plMoreBtn'){ PL.limit+=PAGE; renderPlTable(); return; }
+  if(t.id==='plExport'){
+    const head=['Order','Date','Status','Items','Value','Value ex-GST','Product cost','Gross profit','Expense share','Net profit','Items without cost'];
+    const rows=PL.rows.map(o=>[o.name,fmtDate(o.date),o.statusLabel,o.items,o.value,Math.round(o.exGst),o.cost??'',o.gross===null?'':Math.round(o.gross),o.share===null?'':Math.round(o.share),o.net===null?'':Math.round(o.net),o.noCost]);
+    const csv=[head].concat(rows).map(r=>r.map(v=>{v=String(v??''); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(',')).join('\n');
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'})); a.download=`rawayi-profit-${S.month}.csv`; a.click(); return; }
+  if(t.dataset.plo){ const o = S.byName && S.byName[t.dataset.plo]; if(o) openOrder(o); }
+});
+$('#plq').addEventListener('input', e=>{ PL.q=e.target.value; PL.limit=PAGE; clearTimeout(PL.qt); PL.qt=setTimeout(renderPlTable,150); });
+
 function renderSync(){
   const t = S.fetchedAt ? new Date(S.fetchedAt) : null;
   const m = (S.months||[]).find(x=>x.ym===S.month);
@@ -843,7 +1053,9 @@ async function loadOrders(first){
     const rr = r.returns || {headers:[],rows:[],error:'Update the Apps Script (Code.gs) to load returns.'};
     R.headers = rr.headers||[]; R.list = buildReturns(R.headers, rr.rows||[]); R.error = rr.error||''; indexReturns(); applyReturns();
     X.users = r.userNames || X.users || [];
-    setExchanges(r.exchanges || {error:'Update the Apps Script (Code.gs + Exchange.gs) to use exchanges.', rows:[]});
+    setExchanges(r.exchanges || {rows:[]});
+    PL.data = r.pnl || null; show($('#pnlNav'), !!PL.data);
+    if(!PL.data && S.view==='pnl') setView('orders');
     $('#banner').innerHTML = r.notice ? `<div class="banner">${esc(r.notice)}</div>` : '';
     show($('#loadingMain'),false); show($('#content'),!P.active);
     render();
@@ -1074,7 +1286,8 @@ function openReturn(x){
 function setView(v){
   S.view = v;
   document.querySelectorAll('#viewNav button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
-  show($('#ordersView'), v==='orders'); show($('#returnsView'), v==='returns'); show($('#exchangeView'), v==='exchange');
+  show($('#ordersView'), v==='orders'); show($('#returnsView'), v==='returns'); show($('#exchangeView'), v==='exchange'); show($('#pnlView'), v==='pnl');
+  if(v==='pnl') renderPnl();
   show($('#modeSeg'), v==='orders');
   try{ localStorage.setItem('rawayi_monthly_view', v); }catch(e){}
 }
